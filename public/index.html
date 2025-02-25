@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋在线游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>五子棋在线游戏</h1>
+            <div id="room-info">
+                <div>房间ID: <span id="room-id">加载中...</span></div>
+                <div>你的角色: <span id="player-role">等待分配...</span></div>
+                <button id="share-btn">分享链接</button>
+            </div>
+        </header>
+
+        <div class="game-container">
+            <div class="game-area">
+                <canvas id="board" width="450" height="450"></canvas>
+                <div id="game-status">等待对手加入...</div>
+                <button id="restart-btn" disabled>再来一局</button>
+            </div>
+
+            <div class="sidebar">
+                <div class="history-section">
+                    <h2>对战记录</h2>
+                    <ul id="history-list"></ul>
+                </div>
+
+                <div class="chat-section">
+                    <h2>聊天</h2>
+                    <div id="chat-messages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="chat-input" placeholder="输入消息...">
+                        <button id="send-btn">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="debug.js"></script>
+</body>
+</html>
