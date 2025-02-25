@@ -68,6 +68,8 @@ function initWebSocket() {
 
 // 处理WebSocket消息
 function handleSocketMessage(data) {
+  console.log("收到消息:", data);
+
   switch(data.type) {
     case 'roomInfo':
       gameState.roomId = data.roomId;
@@ -137,17 +139,49 @@ function handleSocketMessage(data) {
       break;
 
     case 'gameRestart':
-      gameState.board = data.board;
+      // 清空棋盘
+      gameState.board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(null));
       gameState.gameActive = true;
-      gameState.isBlack = data.players.find(p => p.id === gameState.playerId)?.isBlack || false;
-      gameState.history = data.history;
-      gameState.currentPlayerTurn = gameState.isBlack; // 黑方先行
+
+      // 检查我们是否收到正确的玩家信息
+      if (data.players && Array.isArray(data.players)) {
+        // 找到自己的玩家信息
+        const myPlayer = data.players.find(p => p.id === gameState.playerId);
+        if (myPlayer) {
+          gameState.isBlack = myPlayer.isBlack;
+
+          // 强制设置回合状态 - 黑方总是先行
+          gameState.currentPlayerTurn = myPlayer.isBlack;
+
+          console.log("游戏重启 - 我的角色:", {
+            playerId: gameState.playerId,
+            isBlack: gameState.isBlack,
+            currentPlayerTurn: gameState.currentPlayerTurn
+          });
+        } else {
+          console.error("找不到玩家信息");
+        }
+      } else {
+        console.error("玩家数据格式不正确:", data.players);
+      }
+
+      if (data.history) {
+        gameState.history = data.history;
+      }
 
       updatePlayerRole();
       updateHistoryList();
       drawBoard();
 
-      gameStatus.textContent = gameState.currentPlayerTurn ? '轮到你下棋' : '等待对手下棋';
+      // 清晰地显示谁的回合
+      if (gameState.currentPlayerTurn) {
+        gameStatus.textContent = "游戏重新开始！轮到你下棋";
+        gameStatus.style.color = "green";
+      } else {
+        gameStatus.textContent = "游戏重新开始！等待对手下棋";
+        gameStatus.style.color = "blue";
+      }
+
       restartBtn.disabled = true;
       break;
 
@@ -304,7 +338,29 @@ function updateHistoryList() {
     const li = document.createElement('li');
     const date = new Date(record.timestamp);
     const timeString = date.toLocaleTimeString();
-    li.textContent = `第${index + 1}局: ${record.winner}获胜 (${timeString})`;
+
+    // 修正：根据玩家角色和胜利方正确判断谁获胜
+    let winnerText;
+    if (record.winner === '平局') {
+      winnerText = '平局';
+    }
+    // 玩家是黑方且黑方获胜，或者玩家是白方且白方获胜
+    else if ((record.winner === '黑方' && gameState.isBlack) ||
+             (record.winner === '白方' && !gameState.isBlack)) {
+      winnerText = '你';
+    }
+    // 对手获胜的情况
+    else {
+      winnerText = '对手';
+    }
+
+    // 显示记录
+    if (winnerText === '平局') {
+      li.textContent = `第${index + 1}局: 平局 (${timeString})`;
+    } else {
+      li.textContent = `第${index + 1}局: ${winnerText}获胜 (${timeString})`;
+    }
+
     historyList.appendChild(li);
   });
 }
@@ -338,7 +394,13 @@ function init() {
     }
 
     if (!gameState.currentPlayerTurn) {
-      console.log("不是你的回合");
+      // 详细记录当前状态以便调试
+      console.log("不是你的回合 - 当前游戏状态:", {
+        isBlack: gameState.isBlack,
+        currentPlayerTurn: gameState.currentPlayerTurn,
+        gameActive: gameState.gameActive,
+        board: gameState.board
+      });
       return;
     }
 
@@ -423,6 +485,17 @@ function init() {
 
     document.body.removeChild(tempInput);
   }
+
+  // 添加一个检查回合的调试按钮
+  const debugBtn = document.createElement('button');
+  debugBtn.textContent = '检查游戏状态';
+  debugBtn.style.marginTop = '10px';
+  document.body.appendChild(debugBtn);
+
+  debugBtn.addEventListener('click', () => {
+    console.log("当前游戏状态:", gameState);
+    alert(`当前角色: ${gameState.isBlack ? '黑方' : '白方'}\n当前回合: ${gameState.currentPlayerTurn ? '你的回合' : '对手回合'}`);
+  });
 }
 
 // 页面加载完成后初始化游戏

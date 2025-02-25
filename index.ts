@@ -149,10 +149,21 @@ const server = Bun.serve({
             }
 
             if (data.position) {
-              // 判断是否是玩家的回合
-              const isPlayerTurn = room.game.currentPlayer === null ?
-                (player.isBlack && room.game.state === GameState.WAITING) :
-                room.game.currentPlayer.id === player.id;
+              // 修复游戏开始时的回合判定逻辑
+              let isPlayerTurn = false;
+
+              if (room.game.currentPlayer === null) {
+                // 游戏刚开始，黑方先行
+                isPlayerTurn = player.isBlack;
+                // 设置当前玩家为当前尝试下棋的玩家
+                room.game.currentPlayer = player;
+              } else {
+                // 已经有人下过棋了，检查是否轮到当前玩家
+                isPlayerTurn = room.game.currentPlayer.id === player.id;
+              }
+
+              // 调试日志
+              console.log(`Player ${player.id} (${player.isBlack ? 'BLACK' : 'WHITE'}) attempting move. Current turn: ${isPlayerTurn ? 'YES' : 'NO'}`);
 
               if (!isPlayerTurn) {
                 ws.send(JSON.stringify({
@@ -163,13 +174,15 @@ const server = Bun.serve({
               }
 
               if (room.game.makeMove(player, data.position)) {
-                // 确定下一个玩家 - 如果当前玩家下完后游戏状态没变，说明游戏继续
-                if (room.game.state === GameState.PLAYING && room.game.currentPlayer === null) {
-                  // 找到另一个玩家
-                  const nextPlayer = room.players.find(p => p.id !== player.id);
-                  if (nextPlayer) {
-                    room.game.currentPlayer = nextPlayer;
-                  }
+                // 移动成功，切换到对手回合
+                const nextPlayer = room.players.find(p => p.id !== player.id);
+                if (nextPlayer && room.game.state === GameState.PLAYING) {
+                  room.game.currentPlayer = nextPlayer;
+                  console.log(`Turn switched to player ${nextPlayer.id} (${nextPlayer.isBlack ? 'BLACK' : 'WHITE'})`);
+                } else if (room.game.state !== GameState.PLAYING) {
+                  // 游戏结束，清除当前玩家
+                  room.game.currentPlayer = null;
+                  console.log('Game ended, current player cleared');
                 }
 
                 // 广播移动信息
@@ -202,8 +215,18 @@ const server = Bun.serve({
             if (room.game.state !== GameState.PLAYING) {
               // 交换颜色
               room.players.forEach((p) => (p.isBlack = !p.isBlack));
+
+              // 创建新游戏
               room.game = new Game();
+
+              // 重要！确保游戏状态为PLAYING并设置黑方为当前玩家
               room.game.state = GameState.PLAYING;
+              room.game.currentPlayer = room.players.find(p => p.isBlack) || null;
+
+              console.log('Game restarted. Current player:',
+                room.game.currentPlayer ?
+                `${room.game.currentPlayer.id} (${room.game.currentPlayer.isBlack ? 'BLACK' : 'WHITE'})` :
+                'None');
 
               // 广播游戏重新开始
               broadcastToRoom(room, {
@@ -213,6 +236,7 @@ const server = Bun.serve({
                   id: p.id,
                   isBlack: p.isBlack,
                 })),
+                currentPlayer: room.game.currentPlayer?.id,
                 history: room.history,
               });
             }
