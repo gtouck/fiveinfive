@@ -1,5 +1,3 @@
-import {type ServerWebSocket } from "bun";
-
 // 棋盘大小
 export const BOARD_SIZE = 15;
 
@@ -21,7 +19,7 @@ export enum GameState {
 // 玩家接口
 export interface Player {
   id: string;
-  ws: ServerWebSocket<any>;
+  ws: WebSocket;
   isBlack: boolean;
 }
 

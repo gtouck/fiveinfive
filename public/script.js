@@ -26,6 +26,10 @@ const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
 
+// 获取音效元素
+const moveSound = document.getElementById('move-sound');
+const winSound = document.getElementById('win-sound');
+
 // 初始化WebSocket连接
 function initWebSocket() {
   // 获取URL参数中的房间ID
@@ -129,6 +133,8 @@ function handleSocketMessage(data) {
 
       if (data.lastMove) {
         highlightLastMove(data.lastMove);
+        // 播放落子音效
+        playMoveSound();
       }
 
       if (data.gameState !== 'playing') {
@@ -197,6 +203,27 @@ function handleSocketMessage(data) {
     case 'error':
       alert(data.message);
       break;
+  }
+}
+
+// 播放落子音效
+function playMoveSound() {
+  try {
+    // 重置音效，确保每次都能播放
+    moveSound.currentTime = 0;
+    moveSound.play().catch(e => console.log("音效播放失败:", e));
+  } catch (err) {
+    console.error("播放落子音效失败:", err);
+  }
+}
+
+// 播放胜利音效
+function playWinSound() {
+  try {
+    winSound.currentTime = 0;
+    winSound.play().catch(e => console.log("胜利音效播放失败:", e));
+  } catch (err) {
+    console.error("播放胜利音效失败:", err);
   }
 }
 
@@ -288,13 +315,16 @@ function highlightLastMove(position) {
 // 处理游戏结束
 function handleGameEnd(state, winnerColor) {
   let message = '';
+  let isWin = false;
 
   switch(state) {
     case 'black_win':
       message = '黑方获胜！';
+      isWin = gameState.isBlack;
       break;
     case 'white_win':
       message = '白方获胜！';
+      isWin = !gameState.isBlack;
       break;
     case 'draw':
       message = '平局！';
@@ -303,6 +333,11 @@ function handleGameEnd(state, winnerColor) {
 
   gameStatus.textContent = message;
   restartBtn.disabled = false;
+
+  // 如果玩家获胜，播放胜利音效
+  if (isWin) {
+    playWinSound();
+  }
 }
 
 // 更新玩家角色显示

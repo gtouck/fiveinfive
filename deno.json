@@ -1,0 +1,17 @@
+{
+  "tasks": {
+    "start": "deno run --allow-net --allow-read index.ts"
+  },
+  "imports": {
+    "path": "https://deno.land/std/path/mod.ts",
+    "fs": "https://deno.land/std/fs/mod.ts"
+  },
+  "deploy": {
+    "project": "aa91677b-8b08-45f1-af46-d1729dba3768",
+    "exclude": [
+      "**/node_modules"
+    ],
+    "include": [],
+    "entrypoint": "main.ts"
+  }
+}
